@@ -1,17 +1,24 @@
 use sodiumoxide::randombytes;
 use sodiumoxide::crypto::hash::sha256;
 use sodiumoxide::crypto::hash::sha256::Digest;
+use sodiumoxide::crypto::auth;
+use sodiumoxide::crypto::sign;
+use sodiumoxide::crypto::sign::ed25519::PublicKey;
+use sodiumoxide::crypto::sign::ed25519::SecretKey;
 
-
-// const TEST_URL: &str = "http://sqrl.grc.com/cli.sqrl?nut=";
+const TEST_URL: &str = "http://sqrl.grc.com/cli.sqrl?nut=";
 // const TEST_NUT: &str = "jLUOj4v1HsZm&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw";
 
 
 fn main() {
-    let key: Digest = create_iuk();
-    println!("{:?}", key);
-    let enhashed: Digest = sqrl_enhash(key);
+    let iuk: Digest = create_iuk();
+    println!("{:?}", iuk);
+    let enhashed: Digest = sqrl_enhash(iuk);
     println!("{:?}", enhashed);
+
+	let key_pair = create_keypair(iuk, parse_domain(TEST_URL));
+	println!("{:?}", key_pair);
+
 
 	//if you would like to test the parsing functions simply uncomment these lines, recompile, and run the executable. feel free to add more test cases in these functions
 	//test_parse_nut(); 
@@ -48,6 +55,23 @@ fn sqrl_enhash(input: Digest) -> Digest {
         }
     }
     return Digest::from_slice(&xorsum).unwrap();
+}
+
+//generate the per site public/private keypair using the identity master key and the SQRL domain (supplied by the SQRL server and parsed from the SQRL url by us)
+fn create_keypair(imk: Digest, domain: String) -> ( PublicKey, SecretKey )
+{
+	let domain_as_input = domain.as_bytes();
+	let key = &auth::hmacsha256::Key::from_slice(imk.as_ref()).unwrap();
+
+	//crypto::auth::hmacsha256 with domain as input, identity master key as the key, used to generate a seed for the function used to generate the keypair
+	//described in  SQRL crypto document pg 10
+	let seed = &sign::ed25519::Seed::from_slice( auth::hmacsha256::authenticate(domain_as_input, key).as_ref() ).unwrap();
+	
+	//seed is used to generate the keypair, using crypto::sign::keypair_from_seed
+	//also described in SQRL crypto doc pg 10
+	let key_pair = sign::keypair_from_seed(seed);
+
+	return key_pair;
 }
 
 
