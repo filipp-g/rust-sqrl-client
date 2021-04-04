@@ -10,3 +10,5 @@ edition = "2018"
 [dependencies]
 ureq = { version = "*", features = ["json"] }
 sodiumoxide = "0.2.6"
+tiny_http = "0.8.0"
+sysinfo = "*"
