@@ -8,6 +8,7 @@ use sodiumoxide::randombytes;
 use tiny_http::{Server, Response, Header, StatusCode};
 use std::process::exit;
 use sysinfo::{ProcessExt, SystemExt};
+use std::env;
 
 
 const TEST_URL: &str = "http://sqrl.grc.com/cli.sqrl?nut=";
@@ -23,6 +24,21 @@ fn main() {
             println!("{}:{} => status: {:?}", pid, proc_.name(), proc_.status());
         }
     }
+
+	//added some preliminary code to deal with command line args, if we choose to go that route
+
+	//let mut test_url: String = String::from("");
+
+	// for argument in env::args()
+	// {
+	// 	if argument.starts_with("sqrl://")
+	// 	{
+	// 		test_url = argument;
+	// 	}
+	// }
+
+	// println!("{:?}", test_url);
+
 }
 
 fn start_server() {
