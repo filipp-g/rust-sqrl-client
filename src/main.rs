@@ -17,8 +17,6 @@ use std::ptr::{null_mut, null};
 
 
 
-pub enum Aes256Gcm {}
-
 const TEST_URL: &str = "http://sqrl.grc.com/cli.sqrl?nut=";
 // const TEST_NUT: &str = "jLUOj4v1HsZm&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw";
 
@@ -269,119 +267,6 @@ fn test_parse_domain()
     assert_eq!(String::from("sqrl.grc.com/demo"), parse_domain("sqrl://steve:badpass@SQRL.grc.com:8080/demo/cli.sqrl?x=5&nut=oOB4QOFJux5Z&
 can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vYWNjb3VudC9jb25uZWN0ZWQtYWNjb3VudHMv"));
 }
-
-//All this code below is needed to use the GCM Encrypt
-//I don't know if I implemented it properly, so please tell me/delete this if it's wrong. - Austin
-#[derive(Debug, PartialEq, Eq)]
-pub struct Sensitive<A: U8Array>(A);
-
-impl<A> Drop for Sensitive<A>
-    where
-        A: U8Array,
-{
-    fn drop(&mut self) {
-        memzero(self.0.as_mut())
-    }
-}
-
-impl<A> U8Array for Sensitive<A>
-    where
-        A: U8Array,
-{
-    fn new() -> Self {
-        Sensitive(A::new())
-    }
-
-    fn new_with(v: u8) -> Self {
-        Sensitive(A::new_with(v))
-    }
-
-    fn from_slice(s: &[u8]) -> Self {
-        Sensitive(A::from_slice(s))
-    }
-
-    fn len() -> usize {
-        A::len()
-    }
-
-    fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
-    }
-
-    fn as_mut(&mut self) -> &mut [u8] {
-        self.0.as_mut()
-    }
-}
-
-
-impl Aes256Gcm{
-    pub fn available() -> bool {
-        unsafe { crypto_aead_aes256gcm_is_available() != 0}
-    }
-}
-
-impl Cipher for Aes256Gcm {
-    type Key = Sensitive<[u8; 32]>;
-
-    fn name() -> &'static str {
-        "AESGCM"
-    }
-
-    fn encrypt(k: &Self::Key, nonce: u64, ad: &[u8], plaintext: &[u8], out: &mut [u8]) {
-        assert_eq!(out.len(), plaintext.len() + 16);
-
-        let mut n = [0u8; 12];
-        n[4..].copy_from_slice(&nonce.to_be_bytes());
-
-        unsafe {
-            crypto_aead_aes256gcm_encrypt(
-                out.as_mut_ptr(),
-                null_mut(),
-                plaintext.as_ptr(),
-                plaintext.len() as u64,
-                ad.as_ptr(),
-                ad.len() as u64,
-                null(),
-                n.as_ptr(),
-                k.0.as_ptr(),
-            );
-        }
-    }
-
-    fn decrypt(
-        k: &Self::Key,
-        nonce: u64,
-        ad: &[u8],
-        ciphertext: &[u8],
-        out: &mut [u8],
-    ) -> Result<(), ()> {
-        assert_eq!(out.len() + 16, ciphertext.len());
-
-        let mut n = [0u8; 12];
-        n[4..].copy_from_slice(&nonce.to_be_bytes());
-
-        let ret = unsafe {
-            crypto_aead_aes256gcm_decrypt(
-                out.as_mut_ptr(),
-                null_mut(),
-                null_mut(),
-                ciphertext.as_ptr(),
-                ciphertext.len() as u64,
-                ad.as_ptr(),
-                ad.len() as u64,
-                n.as_ptr(),
-                k.0.as_ptr(),
-            )
-        };
-
-        if ret == 0 {
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-}
-
 
 
 // Sample http request function, will use later
