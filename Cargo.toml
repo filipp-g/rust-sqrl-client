@@ -12,3 +12,6 @@ ureq = { version = "*", features = ["json"] }
 sodiumoxide = "0.2.6"
 tiny_http = "0.8.0"
 sysinfo = "*"
+noise-sodiumoxide = "0.1.1"
+libsodium-sys = "0.2.6"
+noise-protocol = "0.1.3"
