@@ -4,8 +4,6 @@ use sodiumoxide::crypto::sign;
 use sodiumoxide::crypto::sign::ed25519::{PublicKey, SecretKey};
 use sodiumoxide::randombytes;
 
-#[path = "http.rs"] mod http;
-
 
 static mut ID_MASTER_KEY: Option<Digest> = None;
 
