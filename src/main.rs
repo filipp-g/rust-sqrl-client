@@ -14,6 +14,7 @@ use std::process::exit;
 use sysinfo::{ProcessExt, SystemExt};
 use std::env;
 use std::ptr::{null_mut, null};
+use text_io::read;
 
 
 
@@ -36,6 +37,34 @@ fn main() {
         }
     }
 
+
+
+    //Loop to get user input and navigate through SQRL implementation
+    let arr: [&str; 4] = ["h","1","2","3"];
+    loop {
+        println!("Enter in a command. Type 'h' for help with commands");
+        //Read input from the user
+        let mut line: String = read!("{}\n");
+        let mut command: bool = false;
+        //checks over the array to see if it's a valid command
+        for x in 0..arr.len(){
+            if arr[x] == line{
+                command = true;
+            }
+        }
+        if command {
+            handle_command(&*line)
+        }
+        else if line == "0"{
+            break;
+        }
+        else{
+            println!("Not a valid command. Type 'h' to view list of commands");
+        }
+    }
+
+
+
 	//added some preliminary code to deal with command line args, if we choose to go that route
 
 	//let mut test_url: String = String::from("");
@@ -54,6 +83,34 @@ fn main() {
 //Initialize the sodiumoxide library
 pub fn init() -> Result<(), ()> {
     sodium_init()
+}
+
+//Handles the command input by the user.
+fn handle_command(com: &str){
+    if com == "h" {
+        println!("LIST OF COMMANDS");
+        println!("1 - Create Identity");
+        println!("2 - Create keys for url");
+        println!("3 - Enter Password to view saved urls");
+        println!("h - Help");
+        println!("0 - Exit");
+        println!("-------------------------------------");
+    }
+    //Create Identity command
+    else if com == "1" {
+        println!("Create Identity");
+        create_identity();
+        println!("Identity created successfully");
+    }
+    //Create Keys for URL
+    else if com == "2" {
+        println!("Create Keys for URL");
+    }
+    //Enter password to view saved urls
+    else if com == "3" {
+        println!("Enter password to view saved urls");
+    }
+
 }
 
 fn start_server() {
