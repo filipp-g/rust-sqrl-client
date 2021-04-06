@@ -10,6 +10,10 @@ fn main() {
     // Initialize the sodiumoxide library. Makes it thread-safe
     sodium_init();
 
+
+    //Start the server. This prohibits us from using the loop below, since we don't exit. So comment and uncomment as you wish.
+    http::start_server();
+
     // Loop to get user input and navigate through SQRL implementation
     loop {
         println!("Enter in a command. Type 'h' for help with commands");
