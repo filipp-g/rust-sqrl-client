@@ -10,26 +10,15 @@ fn main() {
     // Initialize the sodiumoxide library. Makes it thread-safe
     sodium_init();
 
-    //Loop to get user input and navigate through SQRL implementation
-    let arr: [&str; 4] = ["h", "1", "2", "3"];
+    // Loop to get user input and navigate through SQRL implementation
     loop {
         println!("Enter in a command. Type 'h' for help with commands");
-        //Read input from the user
-        let mut line: String = read!();
-        let mut command: bool = true;
-        //checks over the array to see if it's a valid command
-        for x in 0..arr.len() {
-            if arr[x] == line {
-                command = true;
-            }
-        }
-        if command {
-            handle_command(&*line)
-        } else if line == "0" {
+        // Read input from the user
+        let line: String = read!();
+        if line == "0" {
             return;
-        } else {
-            println!("Not a valid command. Type 'h' to view list of commands");
         }
+        handle_command(&*line);
     }
 
     // // added some preliminary code to deal with command line args, if we choose to go that route
@@ -45,56 +34,64 @@ fn main() {
     // println!("{:?}", test_url);
 }
 
-//Handles the command input by the user.
-fn handle_command(com: &str) {
-    if com == "h" {
-        println!("LIST OF COMMANDS");
-        println!("1 - Create Identity");
-        println!("2 - Create keys for url");
-        println!("3 - Enter Password to view saved urls");
-        println!("h - Help");
-        println!("0 - Exit");
-        println!("-------------------------------------");
-    }
-    //Create Identity command
-    else if com == "1" {
-        println!("Create Identity");
-        unsafe {
-            if crypto::get_id_masterkey() != None {
-                println!("Identity already exists. Overwrite? [y/N]");
-                let choice: String = read!();
-                if choice != "y" && choice != "Y" {
-                    return;
-                }
-            }
+// Handles the command input by the user.
+fn handle_command(command: &str) {
+    match command {
+        "h" => { print_commands_list() }
+        "1" => { cmd_create_identity() }
+        "2" => { cmd_create_url_keypair() }
+        "3" => {
+            println!("Enter password to view saved urls")
         }
-        crypto::create_identity();
-        println!("Identity created successfully");
-    }
-    //Create Keys for URL
-    else if com == "2" {
-        println!("Enter URL to create keys: ");
-        let url: String = read!();
-        let domain = http::parse_domain(&*url);
-        if domain == "Error" {
-            println!("Not valid sqrl:// URL");
-            return;
+        _ => {
+            println!("Not a valid command. Type 'h' to view list of commands")
         }
-        unsafe {
-            let imk = crypto::get_id_masterkey();
-            if imk == None {
-                println!("Please create an Identity first");
+    }
+}
+
+fn print_commands_list() {
+    println!("LIST OF COMMANDS");
+    println!("1 - Create Identity");
+    println!("2 - Create keys for url");
+    println!("3 - Enter Password to view saved urls");
+    println!("h - Help");
+    println!("0 - Exit");
+    println!("-------------------------------------");
+}
+
+fn cmd_create_identity() {
+    println!("Create Identity");
+    unsafe {
+        if crypto::get_id_masterkey() != None {
+            println!("Identity already exists. Overwrite? [y/N]");
+            let choice: String = read!();
+            if choice != "y" && choice != "Y" {
                 return;
             }
-            // per-site public/private keys derived from the imk and the domain from the sqrl URL
-            let key_pair = crypto::create_keypair(imk.unwrap(), domain);
-            println!("PubKey: {:?}", key_pair.0);
-            println!("SecKey: {:?}", key_pair.1);
         }
     }
-    //Enter password to view saved urls
-    else if com == "3" {
-        println!("Enter password to view saved urls");
+    crypto::create_identity();
+    println!("Identity created successfully");
+}
+
+fn cmd_create_url_keypair() {
+    println!("Enter URL to create keys: ");
+    let url: String = read!();
+    let domain = http::parse_domain(&*url);
+    if domain == "Error" {
+        println!("Not valid sqrl:// URL");
+        return;
+    }
+    unsafe {
+        let imk = crypto::get_id_masterkey();
+        if imk == None {
+            println!("Please create an Identity first");
+            return;
+        }
+        // per-site public/private keys derived from the imk and the domain from the sqrl URL
+        let key_pair = crypto::create_keypair(imk.unwrap(), domain);
+        println!("PubKey: {:?}", key_pair.0);
+        println!("SecKey: {:?}", key_pair.1);
     }
 }
 
