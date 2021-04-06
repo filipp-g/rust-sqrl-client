@@ -12,7 +12,7 @@ pub fn start_server() {
         //let response = Response::from_string("www.google.com")
         //    .with_status_code(301);
         // .with_header(Header::from_bytes("Location", "www.google.com").unwrap());
-        let response = Response::from_file(File::open("Transparent.gif").unwrap());
+        let response = Response::from_file(File::open("src/Transparent.gif").unwrap());
         request.respond(response);
 
         // exit(0);
