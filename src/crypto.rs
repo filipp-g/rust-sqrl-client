@@ -7,6 +7,7 @@ use sodiumoxide::crypto::pwhash::scryptsalsa208sha256;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::secretbox;
 use std::result;
+use text_io::read;
 
 static mut ID_MASTER_KEY: Option<Digest> = None;
 
@@ -18,11 +19,23 @@ pub fn create_identity() {
     // identity masterkey is essentially an encrypted version of the iuk
     let imk: Digest = sqrl_enhash(iuk);
     println!("{:?}", imk);
-    //should prompt for the password to be created when we create identity, plus should be verified
+    
+	//prompt for the password to be created when we create identity, plus should be verified
     //at login
-    let passwd = b"RabbitChicken4109";
+	println!("{}", String::from("To finish creating your identity, please input a password. This password will be used later to confirm your identity before logging you into a website with SQRL."));	
+	let mut line: String = read!();
+	println!("{}", String::from("Please confirm your password:"));
+	let mut passwd: String = read!();
+	while line != passwd
+	{
+		println!("{}", String::from("An error occurred: The confirmation did not match your original password. Please try inputting your password again or choose a new one: "));
+		line = read!();
+		println!("{}", String::from("Please confirm your password: "));
+		passwd = read!();
+	}
+
     //get the 256 bit password hash
-    let pwh = sqrl_enscrypt(passwd);
+	let pwh = sqrl_enscrypt(passwd.as_bytes());
 
     unsafe {
         ID_MASTER_KEY = Option::from(imk);
@@ -78,12 +91,11 @@ fn sqrl_enscrypt<'a>(passwd: &'a [u8]) -> Result<[u8; 32], ()>{
     //the encryption requires a MemLimit struct to specify it as 16mb as per SQRL standard
     let memlimit = scryptsalsa208sha256::MemLimit(16);
     let opslimit = scryptsalsa208sha256::OpsLimit(1024);
-
     //This gets the key ready to be filled into key
     let mut k = secretbox::Key([0; secretbox::KEYBYTES]);
     let secretbox::Key(mut key) = k;
-
-    //Get the 32-byte (256 bits) Password Based Key
+    
+	//Get the 32-byte (256 bits) Password Based Key
     scryptsalsa208sha256::derive_key(&mut key, passwd, &salt, opslimit, memlimit).unwrap();
     
     //println!("Here's the pw hash: {:#?}", key); 

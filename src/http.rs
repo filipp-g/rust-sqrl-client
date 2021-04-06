@@ -46,13 +46,10 @@ fn test_parse_nut()
 
 // Parsing function to get back just the domain portion of the URL
 // the exact domain is required to compute the per site private key
-// we can fix formatting on the fnxn to get rid of empty lines, I just like to have my code spread
-// out and separated so its easy to read
 pub fn parse_domain(url: &str) -> String
 {
     // url param is the SQRL url that looks like: sqrl://example.com/jimbo/?x=6&nut=...
     // need to parse out the "example.com/jimbo"
-
     if url.starts_with("sqrl://")
     {
         let mut domain: String = String::from("");
@@ -66,7 +63,6 @@ pub fn parse_domain(url: &str) -> String
             // keep things to the right of the @ symbol
             temp_url = temp_url.split("@").collect::<Vec<&str>>()[1];
         }
-
         // domain ends at the beginning of the first '/' symbol, eg example.com/
         let mut end_index = temp_url.find("/").unwrap() as u8;
         // unless theres an extension, which is then given by the offset var
@@ -83,10 +79,8 @@ pub fn parse_domain(url: &str) -> String
             {
                 domain.push(character);
             }
-
             index += 1;
         }
-
         return domain;
     } else {
         return String::from("Error");
