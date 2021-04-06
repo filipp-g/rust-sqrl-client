@@ -3,7 +3,10 @@ use sodiumoxide::crypto::hash::sha256::{Digest, hash};
 use sodiumoxide::crypto::sign;
 use sodiumoxide::crypto::sign::ed25519::{PublicKey, SecretKey};
 use sodiumoxide::randombytes;
-
+use sodiumoxide::crypto::pwhash::scryptsalsa208sha256;
+use sodiumoxide::crypto::pwhash;
+use sodiumoxide::crypto::secretbox;
+use std::result;
 
 static mut ID_MASTER_KEY: Option<Digest> = None;
 
@@ -15,6 +18,11 @@ pub unsafe fn create_identity() {
     // identity masterkey is essentially an encrypted version of the iuk
     let imk: Digest = sqrl_enhash(iuk);
     println!("{:?}", imk);
+    //should prompt for the password to be created when we create identity, plus should be verified
+    //at login
+    let passwd = b"RabbitChicken4109";
+    //get the 256 bit password hash
+    let pwh = sqrl_enscrypt(passwd);
 
     unsafe {
         ID_MASTER_KEY = Option::from(imk);
@@ -57,6 +65,31 @@ fn sqrl_enhash(input: Digest) -> Digest {
     }
     return Digest::from_slice(&xorsum).unwrap();
 }
+
+//SQRL EnScrypt function. SQRL uses the “Scrypt” memory hard function which, 
+//in SQRL’s usage, requires a committed block of 16 megabytes of RAM. This moves 
+//the function safely out of the range of GPU’s, FPGA’s and ASIC’s. 
+//*Input* the password as a *bytestring*, example usage in create_identity
+//*Output* This is an std::result Result struct, which basically returns left if Ok() or right if Err()
+fn sqrl_enscrypt<'a>(passwd: &'a [u8]) -> Result<[u8; 32], ()>{
+    
+    let salt = pwhash::gen_salt();
+
+    //the encryption requires a MemLimit struct to specify it as 16mb as per SQRL standard
+    let memlimit = scryptsalsa208sha256::MemLimit(16);
+    let opslimit = scryptsalsa208sha256::OpsLimit(1024);
+
+    //This gets the key ready to be filled into key
+    let mut k = secretbox::Key([0; secretbox::KEYBYTES]);
+    let secretbox::Key(mut key) = k;
+
+    //Get the 32-byte (256 bits) Password Based Key
+    scryptsalsa208sha256::derive_key(&mut key, passwd, &salt, opslimit, memlimit).unwrap();
+    
+    //println!("Here's the pw hash: {:#?}", key); 
+    Ok(key)
+
+} 
 
 // generate the per site public/private keypair using the identity master key and the SQRL domain
 // (supplied by the SQRL server and parsed from the SQRL url by us)
