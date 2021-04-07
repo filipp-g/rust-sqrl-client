@@ -1,21 +1,15 @@
+use std::fs::File;
+
 use tiny_http::{Response, Server};
 
-use std::fs::File;
 pub fn start_server() {
     let server = Server::http("0.0.0.0:25519").unwrap();
 
     for request in server.incoming_requests() {
-
-
         println!("received request! method: {:?}, url: {:?}", request.method(), request.url());
 
-        //let response = Response::from_string("www.google.com")
-        //    .with_status_code(301);
-        // .with_header(Header::from_bytes("Location", "www.google.com").unwrap());
-        let response = Response::from_file(File::open("src/Transparent.gif").unwrap());
+        let response = Response::from_file(File::open("img/Transparent.gif").unwrap());
         request.respond(response);
-
-        // exit(0);
     }
 }
 

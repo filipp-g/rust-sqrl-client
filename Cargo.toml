@@ -16,5 +16,6 @@ noise-sodiumoxide = "0.1.1"
 libsodium-sys = "0.2.6"
 noise-protocol = "0.1.3"
 text_io = "0.1.8"
+hex = "*"
 
 

@@ -1,6 +1,7 @@
 use sodiumoxide::init as sodium_init;
 use sysinfo::{ProcessExt, SystemExt};
 use text_io::read;
+use hex;
 
 mod http;
 mod crypto;
@@ -11,18 +12,21 @@ fn main() {
     sodium_init();
 
 
-    //Start the server. This prohibits us from using the loop below, since we don't exit. So comment and uncomment as you wish.
-    http::start_server();
+    // Start the server. This prohibits us from using the loop below, since we don't exit.
+    // So comment and uncomment as you wish.
+    // http::start_server();
 
     // Loop to get user input and navigate through SQRL implementation
     loop {
-        println!("Enter in a command. Type 'h' for help with commands");
+        println!("\nEnter in a command. Type 'h' for help with commands");
         // Read input from the user
         let line: String = read!();
-        if line == "0" {
+        if line.eq("0") {
             return;
         }
-        handle_command(&*line);
+        if ["h", "1", "2", "3"].contains(&&*line) {
+            handle_command(&*line);
+        }
     }
 
     // // added some preliminary code to deal with command line args, if we choose to go that route
@@ -64,7 +68,7 @@ fn print_commands_list() {
 }
 
 fn cmd_create_identity() {
-    println!("Create Identity");
+    println!("Creating Identity...");
     unsafe {
         if crypto::get_id_masterkey() != None {
             println!("Identity already exists. Overwrite? [y/N]");
@@ -94,8 +98,8 @@ fn cmd_create_url_keypair() {
         }
         // per-site public/private keys derived from the imk and the domain from the sqrl URL
         let key_pair = crypto::create_keypair(imk.unwrap(), domain);
-        println!("PubKey: {:?}", key_pair.0);
-        println!("SecKey: {:?}", key_pair.1);
+        println!("PubKey: {}", hex::encode(key_pair.0.0).to_uppercase());
+        println!("SecKey: {}", hex::encode(key_pair.1.0).to_uppercase());
     }
 }
 
