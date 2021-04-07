@@ -11,7 +11,7 @@ use sodiumoxide::crypto::sign;
 use sodiumoxide::crypto::sign::ed25519::{PublicKey, SecretKey};
 use sodiumoxide::randombytes;
 use text_io::read;
-use std::string::FromUtf8Error;
+
 
 static mut ID_MASTER_KEY: Option<Digest> = None;
 
@@ -133,14 +133,8 @@ pub fn create_keypair(imk: Digest, domain: String) -> (PublicKey, SecretKey)
 // using the derived per site private key, creates a signature to be appended to all http queries
 // with the SQRL server the SQRL server can verify this signature using the paired public key
 // (user identity) sent with the request
-pub fn sign_str(input: &str, key: SecretKey) -> String
+pub fn sign_str(input: &str, key: SecretKey) -> Vec<u8>
 {
-    let input1 = input.as_bytes();
-
-    let signed = sign::sign(input1, &key);
-
-    let tostr = String::from_utf8(signed).unwrap();
-
     //use the crypto::sign fnxn as described in the SQRL crypto doc pg 10
-    return tostr;
+    return sign::sign(input.as_bytes(), &key);
 }

@@ -17,7 +17,6 @@ fn main() {
     // Initialize the sodiumoxide library. Makes it thread-safe
     sodium_init();
 
-
     // Start the server. This prohibits us from using the loop below, since we don't exit.
     // So comment and uncomment as you wish.
     // http::start_server();
@@ -139,7 +138,7 @@ pub fn start_server() {
             unsafe {
                 let imk = crypto::get_id_masterkey();
                 let key_pair = crypto::create_keypair(
-                    imk.unwrap(), String::from(url.clone())
+                    imk.unwrap(), url.clone()
                 );
 
                 let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
@@ -149,7 +148,9 @@ pub fn start_server() {
                 let serverstr = base64::encode_config(url, URL_SAFE_NO_PAD);
 
                 let mut idstr = clientstr + &*serverstr;
-                idstr = crypto::sign_str(&*idstr, key_pair.1);
+                idstr = base64::encode_config(
+                    crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD
+                );
 
                 println!("{:?}", idstr);
             }
