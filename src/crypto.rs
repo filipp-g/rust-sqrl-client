@@ -137,10 +137,10 @@ pub fn sign_str(input: &str, key: SecretKey) -> String
 {
     let input1 = input.as_bytes();
 
-    let signed = sign::sign(input1, &key);
+    let signed = sign::sign_detached(input1, &key);
 
-    let tostr = String::from_utf8(signed).unwrap();
+    let tostr = String::from_utf8(signed.as_ref().to_vec()).unwrap();
 
-    //use the crypto::sign fnxn as described in the SQRL crypto doc pg 10
+   //use the crypto::sign fnxn as described in the SQRL crypto doc pg 10
     return tostr;
 }
