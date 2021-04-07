@@ -8,6 +8,7 @@ use sysinfo::{ProcessExt, SystemExt};
 use text_io::read;
 use tiny_http::{Response, Server};
 use std::borrow::Borrow;
+use ureq;
 
 mod http;
 mod crypto;
@@ -64,8 +65,7 @@ fn print_commands_list() {
     println!("LIST OF COMMANDS");
     println!("1 - Create Identity");
     println!("2 - Create keys for url");
-    println!("3 - Enter Password to view saved urls");
-    println!("4 - Start server");
+    println!("3 - Start server");
     println!("h - Help");
     println!("0 - Exit");
     println!("-------------------------------------");
@@ -124,7 +124,6 @@ pub fn start_server() {
     let server = Server::http("127.0.0.1:25519").unwrap();
 
     for request in server.incoming_requests() {
-        // println!("received {:?} request from url: {:?}", request.method(), request.url());
         println!("{:?}", request);
 
         if request.url().contains(".gif") {
@@ -138,21 +137,30 @@ pub fn start_server() {
             unsafe {
                 let imk = crypto::get_id_masterkey();
                 let key_pair = crypto::create_keypair(
-                    imk.unwrap(), url.clone()
+                    imk.unwrap(), url.clone(),
                 );
 
                 let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
                     &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
-                let serverstr = base64::encode_config(url, URL_SAFE_NO_PAD);
+                let serverstr = base64::encode_config(url.clone(), URL_SAFE_NO_PAD);
 
-                let mut idstr = clientstr + &*serverstr;
+                let mut idstr = clientstr.clone() + &*serverstr.clone();
                 idstr = base64::encode_config(
-                    crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD
+                    crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD,
                 );
 
-                println!("{:?}", idstr);
+                let httpurl = str::replace(&*url, "sqrl://", "http://");
+
+                let response = ureq::post(&*httpurl)
+                    .send_form(&[
+                        ("client", &*clientstr),
+                        ("server", &*serverstr),
+                        ("ids", &*idstr),
+                    ]);
+
+                println!("{:?}", response);
             }
         }
     }
