@@ -14,7 +14,7 @@ fn main() {
 
     // Start the server. This prohibits us from using the loop below, since we don't exit.
     // So comment and uncomment as you wish.
-    http::start_server();
+    //http::start_server();
 
     // Loop to get user input and navigate through SQRL implementation
     loop {
@@ -24,7 +24,7 @@ fn main() {
         if line.eq("0") {
             return;
         }
-        if ["h", "1", "2", "3"].contains(&&*line) {
+        if ["h", "1", "2", "3", "4"].contains(&&*line) {
             handle_command(&*line);
         }
     }
@@ -51,6 +51,7 @@ fn handle_command(command: &str) {
         "3" => {
             println!("Enter password to view saved urls")
         }
+        "4" => { http::start_server() }
         _ => {
             println!("Not a valid command. Type 'h' to view list of commands")
         }
@@ -62,6 +63,7 @@ fn print_commands_list() {
     println!("1 - Create Identity");
     println!("2 - Create keys for url");
     println!("3 - Enter Password to view saved urls");
+    println!("4 - Start server");
     println!("h - Help");
     println!("0 - Exit");
     println!("-------------------------------------");
