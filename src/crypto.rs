@@ -134,7 +134,7 @@ pub fn create_keypair(imk: Digest, domain: String) -> (PublicKey, SecretKey)
 // (user identity) sent with the request
 fn sign_url(url: &str, key: SecretKey) -> Vec<u8>
 {
-    let input = url.strip_prefix("sqrl://").unwrap().as_bytes();
+    let input = url.as_bytes();
 
     //use the crypto::sign fnxn as described in the SQRL crypto doc pg 10
     return sign::sign(input, &key);
