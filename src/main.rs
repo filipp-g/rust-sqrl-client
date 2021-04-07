@@ -1,7 +1,13 @@
+use std::fs::File;
+
+use base64;
+use base64::URL_SAFE_NO_PAD;
 use hex;
 use sodiumoxide::init as sodium_init;
 use sysinfo::{ProcessExt, SystemExt};
 use text_io::read;
+use tiny_http::{Response, Server};
+use std::borrow::Borrow;
 
 mod http;
 mod crypto;
@@ -14,7 +20,7 @@ fn main() {
 
     // Start the server. This prohibits us from using the loop below, since we don't exit.
     // So comment and uncomment as you wish.
-    //http::start_server();
+    // http::start_server();
 
     // Loop to get user input and navigate through SQRL implementation
     loop {
@@ -48,10 +54,7 @@ fn handle_command(command: &str) {
         "h" => { print_commands_list() }
         "1" => { cmd_create_identity() }
         "2" => { cmd_create_url_keypair() }
-        "3" => {
-            println!("Enter password to view saved urls")
-        }
-        "4" => { http::start_server() }
+        "3" => { start_server() }
         _ => {
             println!("Not a valid command. Type 'h' to view list of commands")
         }
@@ -114,6 +117,42 @@ fn check_processes() {
     for (pid, proc_) in system.get_processes() {
         if proc_.name().starts_with("rust-sqrl-client") {
             println!("{}:{} => status: {:?}", pid, proc_.name(), proc_.status());
+        }
+    }
+}
+
+pub fn start_server() {
+    let server = Server::http("127.0.0.1:25519").unwrap();
+
+    for request in server.incoming_requests() {
+        // println!("received {:?} request from url: {:?}", request.method(), request.url());
+        println!("{:?}", request);
+
+        if request.url().contains(".gif") {
+            let gif = File::open("img/Transparent.gif").unwrap();
+            let response = Response::from_file(gif);
+            request.respond(response);
+        } else {
+            let b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
+            let url = String::from_utf8(b64).unwrap();
+
+            unsafe {
+                let imk = crypto::get_id_masterkey();
+                let key_pair = crypto::create_keypair(
+                    imk.unwrap(), String::from(url.clone())
+                );
+
+                let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n";
+                clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
+
+                let serverstr = base64::encode_config(url, URL_SAFE_NO_PAD);
+
+                let mut idstr = clientstr + &*serverstr;
+                idstr = crypto::sign_str(&*idstr, key_pair.1);
+
+                println!("{:?}", idstr);
+            }
         }
     }
 }

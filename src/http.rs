@@ -1,29 +1,3 @@
-use std::fs::File;
-
-use base64;
-use base64::URL_SAFE_NO_PAD;
-use tiny_http::{Response, Server};
-
-pub fn start_server() {
-    let server = Server::http("127.0.0.1:25519").unwrap();
-
-    for request in server.incoming_requests() {
-        // println!("received {:?} request from url: {:?}", request.method(), request.url());
-        println!("{:?}", request);
-
-        if request.url().contains(".gif") {
-            let gif = File::open("img/Transparent.gif").unwrap();
-            let response = Response::from_file(gif);
-            request.respond(response);
-        } else {
-            let b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
-            let url = String::from_utf8(b64).unwrap();
-
-            // create keypair here then put together http POST using url, pubkey + signature
-            println!("{:?}", url)
-        }
-    }
-}
 
 //Parsing function to get back just the 'nut' portion of the URL
 fn parse_nut(url: &str) -> String
