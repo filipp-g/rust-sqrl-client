@@ -1,7 +1,7 @@
+use hex;
 use sodiumoxide::init as sodium_init;
 use sysinfo::{ProcessExt, SystemExt};
 use text_io::read;
-use hex;
 
 mod http;
 mod crypto;
@@ -14,7 +14,7 @@ fn main() {
 
     // Start the server. This prohibits us from using the loop below, since we don't exit.
     // So comment and uncomment as you wish.
-    // http::start_server();
+    http::start_server();
 
     // Loop to get user input and navigate through SQRL implementation
     loop {
