@@ -12,7 +12,6 @@ use sodiumoxide::crypto::sign::ed25519::{PublicKey, SecretKey};
 use sodiumoxide::randombytes;
 use text_io::read;
 
-
 static mut ID_MASTER_KEY: Option<Digest> = None;
 
 
