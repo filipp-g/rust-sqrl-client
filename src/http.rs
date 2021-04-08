@@ -1,32 +1,6 @@
+//Authors: Max, Fil, Carter, Austin
+//COMP4109 rust-sqrl-client
 
-//Parsing function to get back just the 'nut' portion of the URL
-fn parse_nut(url: &str) -> String
-{
-    let mut nut: String = String::from("");
-    if url.starts_with("sqrl://")
-    {
-        let mut temp_url = url.strip_prefix("sqrl://").unwrap();
-
-        temp_url = temp_url.split("?").collect::<Vec<&str>>()[1];
-
-        temp_url = temp_url.split("nut=").collect::<Vec<&str>>()[1];
-
-        temp_url = temp_url.split("&can=").collect::<Vec<&str>>()[0];
-
-        nut.push_str(temp_url);
-
-        return nut;
-    } else {
-        nut.push_str("Error");
-        return nut;
-    }
-}
-
-fn test_parse_nut()
-{
-    let url = "sqrl://sqrl.grc.com/cli.sqrl?nut=jLUOj4v1HsZm&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw";
-    assert_eq!("jLUOj4v1HsZm", parse_nut(&url));
-}
 
 // Parsing function to get back just the domain portion of the URL
 // the exact domain is required to compute the per site private key
@@ -71,12 +45,12 @@ pub fn parse_domain(url: &str) -> String
     }
 }
 
-//Helper function for the parsers
+//Helper function for the parser
 fn determine_offset(params: &str) -> u8
 {
     // given something like
     // x=5&nut=oOB4QOFJux5Z&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vYWNjb3VudC9jb25uZWN0ZWQtYWNjb3VudHMv
-
+	//need to get the value right of the x=
     if params.get(0..1).unwrap() == "x"
     {
         let mut num_str = params.split("&").collect::<Vec<&str>>()[0];
@@ -88,22 +62,22 @@ fn determine_offset(params: &str) -> u8
 }
 
 
-fn test_parse_domain()
-{
-    // test cases taken from GRCs SQRL Operating Details pg 7
-    // to lowercase
-    assert_eq!(String::from("example.com"), parse_domain("sqrl://ExAmPlE.cOm/?nut="));
-    // removing specified port num
-    assert_eq!(String::from("example.com"), parse_domain("sqrl://example.com:44344/?nut="));
-    // removing username prefix
-    assert_eq!(String::from("example.com"), parse_domain("sqrl://jonny@example.com/?nut="));
-    // removing username:pass prefix
-    assert_eq!(String::from("example.com"), parse_domain("sqrl://Jonny:Secret@example.com/?nut="));
-    // keeping extended auth domain
-    assert_eq!(String::from("example.com/jimbo"), parse_domain("sqrl://example.com/jimbo/?x=6&nut="));
-    // stopping at ? and only making domain lowercase, not extended auth
-    assert_eq!(String::from("example.com/JIMBO"), parse_domain("sqrl://EXAMPLE.COM/JIMBO?x=16&nut="));
+// fn test_parse_domain()
+// {
+//     // test cases taken from GRCs SQRL Operating Details pg 7
+//     // to lowercase
+//     assert_eq!(String::from("example.com"), parse_domain("sqrl://ExAmPlE.cOm/?nut="));
+//     // removing specified port num
+//     assert_eq!(String::from("example.com"), parse_domain("sqrl://example.com:44344/?nut="));
+//     // removing username prefix
+//     assert_eq!(String::from("example.com"), parse_domain("sqrl://jonny@example.com/?nut="));
+//     // removing username:pass prefix
+//     assert_eq!(String::from("example.com"), parse_domain("sqrl://Jonny:Secret@example.com/?nut="));
+//     // keeping extended auth domain
+//     assert_eq!(String::from("example.com/jimbo"), parse_domain("sqrl://example.com/jimbo/?x=6&nut="));
+//     // stopping at ? and only making domain lowercase, not extended auth
+//     assert_eq!(String::from("example.com/JIMBO"), parse_domain("sqrl://EXAMPLE.COM/JIMBO?x=16&nut="));
 
-    assert_eq!(String::from("sqrl.grc.com/demo"), parse_domain("sqrl://steve:badpass@SQRL.grc.com:8080/demo/cli.sqrl?x=5&nut=oOB4QOFJux5Z&
-can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vYWNjb3VudC9jb25uZWN0ZWQtYWNjb3VudHMv"));
-}
+//     assert_eq!(String::from("sqrl.grc.com/demo"), parse_domain("sqrl://steve:badpass@SQRL.grc.com:8080/demo/cli.sqrl?x=5&nut=oOB4QOFJux5Z&
+// can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vYWNjb3VudC9jb25uZWN0ZWQtYWNjb3VudHMv"));
+// }

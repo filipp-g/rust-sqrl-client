@@ -167,14 +167,14 @@ fn handle_auth_response(request: Request) {
 
     let string_resp2 = server_response2.into_string().unwrap();
     newurl = base64decode(string_resp2.clone());
-    println!("last check, server resp decoded:\n{}", newurl);
+    println!("last check. server response decoded:\n{}", newurl);
 
     if newurl.contains("url=") {
         let redirect = newurl.split("url=")
             .collect::<Vec<&str>>()[1]
             .trim()
             .to_string();
-        println!("redrect url should be = {}", redirect);
+        println!("redirect url should be = {}", redirect);
 
         let browser_resp = Response::from_string("body-goes-here")
             .with_header(Header::from_bytes("Location", redirect).unwrap())
@@ -203,17 +203,4 @@ fn base64encode<T: AsRef<[u8]>>(input: T) -> String {
 fn base64decode<T: AsRef<[u8]>>(input: T) -> String {
     let utf8 = base64::decode_config(input, URL_SAFE_NO_PAD).unwrap();
     return String::from_utf8(utf8).unwrap();
-}
-
-// can use this once we figure out how to either do IPC or send kill
-// signal to already running non-child process
-fn check_processes() {
-    let mut system = sysinfo::System::new_all();
-    // Need to update all information of system struct
-    system.refresh_all();
-    for (pid, proc_) in system.get_processes() {
-        if proc_.name().starts_with("rust-sqrl-client") {
-            println!("{}:{} => status: {:?}", pid, proc_.name(), proc_.status());
-        }
-    }
 }
