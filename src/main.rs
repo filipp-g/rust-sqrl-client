@@ -135,7 +135,6 @@ pub fn start_server() {
             let url = String::from_utf8(b64).unwrap();
 			let original = url.strip_prefix("sqrl://").unwrap().split("/").collect::<Vec<&str>>()[0];
 			
-			//println!("the original url =   {:?}, and the domain and whatever else = {:?}", url, original);
             unsafe {
                 let imk = crypto::get_id_masterkey();
                 let key_pair = crypto::create_keypair(
@@ -143,7 +142,7 @@ pub fn start_server() {
                 );
 
                 let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps~suk\r\n";
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
                 let serverstr = base64::encode_config(url.clone(), URL_SAFE_NO_PAD);
@@ -164,7 +163,7 @@ pub fn start_server() {
 
 				let string_resp = response.unwrap().into_string().unwrap();
 				
-				println!("my new server resp = {:?}", string_resp);
+				println!("server resp = {:?}", string_resp);
 				b64 = base64::decode_config(string_resp.clone(), URL_SAFE_NO_PAD).unwrap();
 				println!("decoded = {:?}", String::from_utf8(b64).unwrap());
 
@@ -172,7 +171,7 @@ pub fn start_server() {
 
 				//send second 'ident' request
 				clientstr = "ver=1\r\ncmd=ident\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps~suk\r\n";
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
 				//make server value
@@ -180,7 +179,7 @@ pub fn start_server() {
 				let mut newurl = String::from_utf8(b64).unwrap();
 				newurl = newurl.split("qry=").collect::<Vec<&str>>()[1].trim().to_string();
 				newurl = String::from("") + "http://" + original + &*newurl;
-				println!("my new 'url' = {:?}", newurl);
+				println!(" new url to send to server = {:?}", newurl);
 
 
 				idstr =  clientstr.clone() + &*serverstr.clone();
@@ -203,7 +202,7 @@ pub fn start_server() {
 				if newurl.contains("url=")
 				{
 					let redirect = newurl.split("url=").collect::<Vec<&str>>()[1].trim().to_string();
-					println!("okay wtf = {:?}", redirect);
+					println!("redrect url should be = {:?}", redirect);
 					
 					let mut browser_response = Response::empty(StatusCode::from(302));
 					browser_response.add_header((Header::from_bytes(&b"Location"[..], redirect.as_bytes()).unwrap()));
