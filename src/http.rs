@@ -48,7 +48,7 @@ pub fn parse_domain(url: &str) -> String
             temp_url = temp_url.split("@").collect::<Vec<&str>>()[1];
         }
         // domain ends at the beginning of the first '/' symbol, eg example.com/
-        let mut end_index = temp_url.find("/").unwrap() as u8;
+        let end_index = temp_url.find("/").unwrap() as u8;
         // unless theres an extension, which is then given by the offset var
         let mut index = 0;
         for character in temp_url.chars()
@@ -107,13 +107,3 @@ fn test_parse_domain()
     assert_eq!(String::from("sqrl.grc.com/demo"), parse_domain("sqrl://steve:badpass@SQRL.grc.com:8080/demo/cli.sqrl?x=5&nut=oOB4QOFJux5Z&
 can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vYWNjb3VudC9jb25uZWN0ZWQtYWNjb3VudHMv"));
 }
-
-// Sample http request function, will use later
-// fn send_request(url: &str) -> Result<(), ureq::Error> {
-//     let body: String = ureq::get(url)
-//         .set("Example-Header", "header value")
-//         .call()?
-//         .into_string()?;
-//     println!("{:?}", body);
-//     Ok(())
-// }

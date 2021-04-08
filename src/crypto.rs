@@ -1,6 +1,3 @@
-use std::hash::Hash;
-use std::result;
-
 use hex;
 use sodiumoxide::crypto::auth;
 use sodiumoxide::crypto::hash::sha256::{Digest, hash};
@@ -40,7 +37,7 @@ pub fn create_identity() {
 	}
 
     //get the 256 bit password hash
-	let pwh = sqrl_enscrypt(passwd.as_bytes());
+	// let pwh = sqrl_enscrypt(passwd.as_bytes());
 
     unsafe {
         ID_MASTER_KEY = Option::from(imk);
@@ -97,7 +94,7 @@ fn sqrl_enscrypt<'a>(passwd: &'a [u8]) -> Result<[u8; 32], ()>{
     let memlimit = scryptsalsa208sha256::MemLimit(16);
     let opslimit = scryptsalsa208sha256::OpsLimit(1024);
     //This gets the key ready to be filled into key
-    let mut k = secretbox::Key([0; secretbox::KEYBYTES]);
+    let k = secretbox::Key([0; secretbox::KEYBYTES]);
     let secretbox::Key(mut key) = k;
     
 	//Get the 32-byte (256 bits) Password Based Key
