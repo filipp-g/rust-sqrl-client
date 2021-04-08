@@ -142,7 +142,7 @@ fn handle_auth_response(request: Request) {
 
     let string_resp = response.unwrap().into_string().unwrap();
     println!("server resp = {:?}", string_resp);
-    println!("decoded =\n{}", base64decode(string_resp.clone()));
+    println!("decoded:\n{}", base64decode(string_resp.clone()));
 
     //send second 'ident' request
     clientstr = format!("ver=1\r\ncmd=ident\r\nidk={}\r\nopt=cps\r\n", b64pubkey);
@@ -152,7 +152,7 @@ fn handle_auth_response(request: Request) {
     let mut newurl = base64decode(string_resp.clone());
     newurl = newurl.split("qry=").collect::<Vec<&str>>()[1].trim().to_string();
     newurl = format!("http://{}{}", original, newurl);
-    println!(" new url to send to server = {}", newurl);
+    println!("new url to send to server = {}", newurl);
 
     idstr = clientstr.clone() + &*serverstr.clone();
     //create the signature from client+server concatenated
