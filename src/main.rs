@@ -130,7 +130,7 @@ pub fn start_server() {
             let gif = File::open("img/Transparent.gif").unwrap();
             let response = Response::from_file(gif);
             request.respond(response);
-        } else {
+        } else if !request.url().contains(".ico"){
             let mut b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
             let url = String::from_utf8(b64).unwrap();
 			let original = url.strip_prefix("sqrl://").unwrap().split("/").collect::<Vec<&str>>()[0];
@@ -143,7 +143,7 @@ pub fn start_server() {
                 );
 
                 let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps~suk\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
                 let serverstr = base64::encode_config(url.clone(), URL_SAFE_NO_PAD);
@@ -172,7 +172,7 @@ pub fn start_server() {
 
 				//send second 'ident' request
 				clientstr = "ver=1\r\ncmd=ident\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps~suk\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
 				//make server value
@@ -197,14 +197,16 @@ pub fn start_server() {
 				let string_resp2 = server_response2.into_string().unwrap();
 				b64 = base64::decode_config(string_resp2.clone(), URL_SAFE_NO_PAD).unwrap();
 				println!("last check, server resp = {:?}", string_resp2);
-				println!("decoded = {:?}", String::from_utf8(b64).unwrap());
+				newurl = String::from_utf8(b64).unwrap();
+				println!("decoded = {:?}", newurl);
 
-				// if string_resp2.contains("url=")
-				// {
-				// 	let redirect = string_resp2.split("url=").collect::<Vec<&str>>()[1];
-				// 	let browser_response = Response::from_string(redirect).with_status_code(302);
-				// 	request.respond(browser_response);
-			//	}
+				if newurl.contains("url=")
+				{
+					let redirect = newurl.split("url=").collect::<Vec<&str>>()[1].trim().to_string();
+					println!("okay wtf = {:?}", redirect);
+					let browser_response = Response::from_string(redirect).with_status_code(302);
+					request.respond(browser_response);
+				}  
 
 
             }
