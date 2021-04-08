@@ -131,9 +131,11 @@ pub fn start_server() {
             let response = Response::from_file(gif);
             request.respond(response);
         } else {
-            let b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
+            let mut b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
             let url = String::from_utf8(b64).unwrap();
-
+			let original = url.strip_prefix("sqrl://").unwrap().split("/").collect::<Vec<&str>>()[0];
+			
+			//println!("the original url =   {:?}, and the domain and whatever else = {:?}", url, original);
             unsafe {
                 let imk = crypto::get_id_masterkey();
                 let key_pair = crypto::create_keypair(
@@ -141,14 +143,14 @@ pub fn start_server() {
                 );
 
                 let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n";
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
                 clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
 
                 let serverstr = base64::encode_config(url.clone(), URL_SAFE_NO_PAD);
 
                 let mut idstr = clientstr.clone() + &*serverstr.clone();
                 idstr = base64::encode_config(
-                    crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD,
+                    crypto::sign_str(&*idstr, key_pair.1.clone()), URL_SAFE_NO_PAD,
                 );
 
                 let httpurl = str::replace(&*url, "sqrl://", "http://");
@@ -160,7 +162,51 @@ pub fn start_server() {
                         ("ids", &*idstr),
                     ]);
 
-                println!("{:?}", response);
+				let string_resp = response.unwrap().into_string().unwrap();
+				
+				println!("my new server resp = {:?}", string_resp);
+				b64 = base64::decode_config(string_resp.clone(), URL_SAFE_NO_PAD).unwrap();
+				println!("decoded = {:?}", String::from_utf8(b64).unwrap());
+
+
+
+				//send second 'ident' request
+				clientstr = "ver=1\r\ncmd=ident\r\nidk=".to_owned() +
+                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
+                clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
+
+				//make server value
+				b64 = base64::decode_config(string_resp.clone(), URL_SAFE_NO_PAD).unwrap();
+				let mut newurl = String::from_utf8(b64).unwrap();
+				newurl = newurl.split("qry=").collect::<Vec<&str>>()[1].trim().to_string();
+				newurl = String::from("") + "http://" + original + &*newurl;
+				println!("my new 'url' = {:?}", newurl);
+
+
+				idstr =  clientstr.clone() + &*serverstr.clone();
+				//create the signature from client+server concatenated
+				idstr = base64::encode_config(crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD);
+
+				let server_response2 = ureq::post(&*newurl)
+				.send_form(&[
+					("client", &*clientstr),
+					("server", &*string_resp),
+					("ids", &*idstr),
+				]).unwrap();
+
+				let string_resp2 = server_response2.into_string().unwrap();
+				b64 = base64::decode_config(string_resp2.clone(), URL_SAFE_NO_PAD).unwrap();
+				println!("last check, server resp = {:?}", string_resp2);
+				println!("decoded = {:?}", String::from_utf8(b64).unwrap());
+
+				// if string_resp2.contains("url=")
+				// {
+				// 	let redirect = string_resp2.split("url=").collect::<Vec<&str>>()[1];
+				// 	let browser_response = Response::from_string(redirect).with_status_code(302);
+				// 	request.respond(browser_response);
+			//	}
+
+
             }
         }
     }
