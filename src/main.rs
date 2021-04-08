@@ -6,7 +6,7 @@ use hex;
 use sodiumoxide::init as sodium_init;
 use sysinfo::{ProcessExt, SystemExt};
 use text_io::read;
-use tiny_http::{Response, Server};
+use tiny_http::{Response, Server, StatusCode, Header};
 use std::borrow::Borrow;
 use ureq;
 
@@ -204,7 +204,9 @@ pub fn start_server() {
 				{
 					let redirect = newurl.split("url=").collect::<Vec<&str>>()[1].trim().to_string();
 					println!("okay wtf = {:?}", redirect);
-					let browser_response = Response::from_string(redirect).with_status_code(302);
+					
+					let mut browser_response = Response::empty(StatusCode::from(302));
+					browser_response.add_header((Header::from_bytes(&b"Location"[..], redirect.as_bytes()).unwrap()));
 					request.respond(browser_response);
 				}  
 
