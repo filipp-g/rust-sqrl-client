@@ -18,10 +18,6 @@ fn main() {
     // Initialize the sodiumoxide library. Makes it thread-safe
     sodium_init();
 
-    // Start the server. This prohibits us from using the loop below, since we don't exit.
-    // So comment and uncomment as you wish.
-    // http::start_server();
-
     // Loop to get user input and navigate through SQRL implementation
     loop {
         println!("\nEnter in a command. Type 'h' for help with commands");
@@ -107,19 +103,6 @@ fn cmd_create_url_keypair() {
     }
 }
 
-// can use this once we figure out how to either do IPC or send kill
-// signal to already running non-child process
-fn check_processes() {
-    let mut system = sysinfo::System::new_all();
-    // Need to update all information of system struct
-    system.refresh_all();
-    for (pid, proc_) in system.get_processes() {
-        if proc_.name().starts_with("rust-sqrl-client") {
-            println!("{}:{} => status: {:?}", pid, proc_.name(), proc_.status());
-        }
-    }
-}
-
 pub fn start_server() {
     let server = Server::http("127.0.0.1:25519").unwrap();
 
@@ -130,27 +113,29 @@ pub fn start_server() {
             let gif = File::open("img/Transparent.gif").unwrap();
             let response = Response::from_file(gif);
             request.respond(response);
-        } else if !request.url().contains(".ico"){
-            let mut b64 = base64::decode_config(&request.url()[1..], URL_SAFE_NO_PAD).unwrap();
-            let url = String::from_utf8(b64).unwrap();
-			let original = url.strip_prefix("sqrl://").unwrap().split("/").collect::<Vec<&str>>()[0];
-			
+        } else if !request.url().contains(".ico") {
+            let url = base64decode(&request.url()[1..]);
+            let original = url.strip_prefix("sqrl://")
+                .unwrap()
+                .split("/")
+                .collect::<Vec<&str>>()[0];
+
+            // We need to be in an unsafe block since our Masterkey is saved as static global
             unsafe {
                 let imk = crypto::get_id_masterkey();
                 let key_pair = crypto::create_keypair(
                     imk.unwrap(), url.clone(),
                 );
 
-                let mut clientstr = "ver=1\r\ncmd=query\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
-                clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
+                let mut clientstr = format!(
+                    "ver=1\r\ncmd=query\r\nidk={}\r\nopt=cps\r\n", base64encode(key_pair.0.0)
+                );
+                clientstr = base64encode(clientstr);
 
-                let serverstr = base64::encode_config(url.clone(), URL_SAFE_NO_PAD);
+                let serverstr = base64encode(url.clone());
 
                 let mut idstr = clientstr.clone() + &*serverstr.clone();
-                idstr = base64::encode_config(
-                    crypto::sign_str(&*idstr, key_pair.1.clone()), URL_SAFE_NO_PAD,
-                );
+                idstr = base64encode(crypto::sign_str(&*idstr, key_pair.1.clone()));
 
                 let httpurl = str::replace(&*url, "sqrl://", "http://");
 
@@ -161,56 +146,75 @@ pub fn start_server() {
                         ("ids", &*idstr),
                     ]);
 
-				let string_resp = response.unwrap().into_string().unwrap();
-				
-				println!("server resp = {:?}", string_resp);
-				b64 = base64::decode_config(string_resp.clone(), URL_SAFE_NO_PAD).unwrap();
-				println!("decoded = {:?}", String::from_utf8(b64).unwrap());
+                let string_resp = response.unwrap().into_string().unwrap();
+                println!("server resp = {:?}", string_resp);
+                println!("decoded = {:?}", base64decode(string_resp.clone()));
 
 
+                //send second 'ident' request
+                clientstr = format!(
+                    "ver=1\r\ncmd=ident\r\nidk={}\r\nopt=cps\r\n", base64encode(key_pair.0.0)
+                );
+                clientstr = base64encode(clientstr);
 
-				//send second 'ident' request
-				clientstr = "ver=1\r\ncmd=ident\r\nidk=".to_owned() +
-                    &*base64::encode_config(key_pair.0.0, URL_SAFE_NO_PAD) + "\r\n" +"opt=cps\r\n";
-                clientstr = base64::encode_config(clientstr, URL_SAFE_NO_PAD);
+                //make server value
+                let mut newurl = base64decode(string_resp.clone());
+                newurl = newurl.split("qry=").collect::<Vec<&str>>()[1].trim().to_string();
+                newurl = String::from("") + "http://" + original + &*newurl;
+                println!(" new url to send to server = {:?}", newurl);
 
-				//make server value
-				b64 = base64::decode_config(string_resp.clone(), URL_SAFE_NO_PAD).unwrap();
-				let mut newurl = String::from_utf8(b64).unwrap();
-				newurl = newurl.split("qry=").collect::<Vec<&str>>()[1].trim().to_string();
-				newurl = String::from("") + "http://" + original + &*newurl;
-				println!(" new url to send to server = {:?}", newurl);
+                idstr = clientstr.clone() + &*serverstr.clone();
+                //create the signature from client+server concatenated
+                idstr = base64encode(crypto::sign_str(&*idstr, key_pair.1));
 
+                let server_response2 = ureq::post(&*newurl)
+                    .send_form(&[
+                        ("client", &*clientstr),
+                        ("server", &*string_resp),
+                        ("ids", &*idstr),
+                    ]).unwrap();
 
-				idstr =  clientstr.clone() + &*serverstr.clone();
-				//create the signature from client+server concatenated
-				idstr = base64::encode_config(crypto::sign_str(&*idstr, key_pair.1), URL_SAFE_NO_PAD);
+                let string_resp2 = server_response2.into_string().unwrap();
+                newurl = base64decode(string_resp2.clone());
+                println!("last check, server resp decoded = {:?}", newurl);
 
-				let server_response2 = ureq::post(&*newurl)
-				.send_form(&[
-					("client", &*clientstr),
-					("server", &*string_resp),
-					("ids", &*idstr),
-				]).unwrap();
+                if newurl.contains("url=") {
+                    let redirect = newurl.split("url=")
+                        .collect::<Vec<&str>>()[1]
+                        .trim()
+                        .to_string();
+                    println!("redrect url should be = {:?}", redirect);
 
-				let string_resp2 = server_response2.into_string().unwrap();
-				b64 = base64::decode_config(string_resp2.clone(), URL_SAFE_NO_PAD).unwrap();
-				println!("last check, server resp = {:?}", string_resp2);
-				newurl = String::from_utf8(b64).unwrap();
-				println!("decoded = {:?}", newurl);
-
-				if newurl.contains("url=")
-				{
-					let redirect = newurl.split("url=").collect::<Vec<&str>>()[1].trim().to_string();
-					println!("redrect url should be = {:?}", redirect);
-					
-					let mut browser_response = Response::empty(StatusCode::from(302));
-					browser_response.add_header((Header::from_bytes(&b"Location"[..], redirect.as_bytes()).unwrap()));
-					request.respond(browser_response);
-				}  
-
-
+                    let browser_resp = Response::from_string("body-goes-here")
+                        .with_header(Header::from_bytes("Location", redirect).unwrap())
+                        .with_status_code(302);
+                    request.respond(browser_resp);
+                }
             }
+        }
+    }
+}
+
+// convenience function for encoding as base64url
+fn base64encode<T: AsRef<[u8]>>(input: T) -> String {
+    return base64::encode_config(input, URL_SAFE_NO_PAD);
+}
+
+// convenience function for decoding base64url
+fn base64decode<T: AsRef<[u8]>>(input: T) -> String {
+    let utf8 = base64::decode_config(input, URL_SAFE_NO_PAD).unwrap();
+    return String::from_utf8(utf8).unwrap();
+}
+
+// can use this once we figure out how to either do IPC or send kill
+// signal to already running non-child process
+fn check_processes() {
+    let mut system = sysinfo::System::new_all();
+    // Need to update all information of system struct
+    system.refresh_all();
+    for (pid, proc_) in system.get_processes() {
+        if proc_.name().starts_with("rust-sqrl-client") {
+            println!("{}:{} => status: {:?}", pid, proc_.name(), proc_.status());
         }
     }
 }
